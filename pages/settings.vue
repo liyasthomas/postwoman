@@ -162,6 +162,39 @@
       -->
     </AppSection>
 
+    <AppSection :label="$t('gist')" ref="gist" no-legend>
+      <div class="flex flex-col">
+        <label>{{ $t("gist") }}</label>
+        <div class="row-wrapper">
+          <span>
+            <SmartToggle :on="GIST_ENABLED" @change="toggleSetting('GIST_ENABLED')">
+              {{ $t("gist") }}
+              {{ GIST_ENABLED ? $t("enabled") : $t("disabled") }}
+            </SmartToggle>
+          </span>
+          <a
+            href="https://github.com/hoppscotch/hoppscotch/wiki/Proxy"
+            target="_blank"
+            rel="noopener"
+          >
+            <button class="icon" v-tooltip="$t('wiki')">
+              <i class="material-icons">help_outline</i>
+            </button>
+          </a>
+        </div>
+        <input
+          id="gistUrl"
+          type="url"
+          v-model="GIST_URL"
+          :disabled="!GIST_ENABLED"
+          :placeholder="$t('url')"
+        />
+        <p class="info">
+          {{ $t("gist_sync_doc") }}
+        </p>
+      </div>
+    </AppSection>
+
     <AppSection :label="$t('experiments')" ref="experiments" no-legend>
       <div class="flex flex-col">
         <label>{{ $t("experiments") }}</label>
@@ -220,8 +253,11 @@ export default Vue.extend({
       PROXY_URL: "",
       PROXY_KEY: "",
 
+      GIST_URL: "",
+
       EXTENSIONS_ENABLED: true,
       PROXY_ENABLED: true,
+      GIST_ENABLED: true,
     }
   },
   subscriptions() {
@@ -231,6 +267,9 @@ export default Vue.extend({
       PROXY_ENABLED: getSettingSubject("PROXY_ENABLED"),
       PROXY_URL: getSettingSubject("PROXY_URL"),
       PROXY_KEY: getSettingSubject("PROXY_KEY"),
+
+      GIST_ENABLED: getSettingSubject("GIST_ENABLED"),
+      GIST_URL: getSettingSubject("GIST_URL"),
 
       EXTENSIONS_ENABLED: getSettingSubject("EXTENSIONS_ENABLED"),
 
@@ -251,6 +290,32 @@ export default Vue.extend({
     },
   },
   methods: {
+    async createGistURL() {
+      if (this.GIST_URL) return
+      await this.$axios
+        .$post(
+          "https://api.github.com/gists",
+          {
+            files: {
+              "hoppscotch-collections.json": {
+                content: "",
+              },
+            },
+          },
+          {
+            headers: {
+              Authorization: `token ${fb.currentUser.accessToken}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          }
+        )
+        .then(({ html_url }) => {
+          this.GIST_URL = html_url
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    },
     applySetting<K extends keyof SettingsType>(key: K, value: SettingsType[K]) {
       applySetting(key, value)
     },
@@ -260,6 +325,10 @@ export default Vue.extend({
       }
       if (key === "PROXY_ENABLED" && this.EXTENSIONS_ENABLED) {
         toggleSetting("EXTENSIONS_ENABLED")
+      }
+      if (key == "EXTENSIONS_ENABLED" && this.GIST_ENABLED) {
+        toggleSetting("GIST_ENABLED")
+        // new fun in settings.vue
       }
       toggleSetting(key)
     },
