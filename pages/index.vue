@@ -11,7 +11,12 @@
                   <input
                     id="method"
                     class="method"
-                    v-model="method"
+                    :value="request.method"
+                    @change="
+                      (newName) => {
+                        this.request = { ...this.request, method: newName.target.value }
+                      }
+                    "
                     :readonly="!customMethod"
                     autofocus
                   />
@@ -24,7 +29,7 @@
                         class="icon"
                         @click="
                           customMethod = methodMenuItem == 'CUSTOM' ? true : false
-                          method = methodMenuItem
+                          request = { ...request, method: methodMenuItem }
                         "
                         v-close-popover
                       >
@@ -77,17 +82,36 @@
           <ul>
             <li>
               <label for="name" class="text-sm">{{ $t("token_req_name") }}</label>
-              <input id="name" name="name" type="text" v-model="name" class="text-sm" />
+              <input
+                id="name"
+                name="name"
+                type="text"
+                :value="request.name"
+                @change="
+                  (newValue) => {
+                    this.request = { ...this.request, name: newValue.target.value }
+                  }
+                "
+                class="text-sm"
+              />
             </li>
           </ul>
-          <div label="Request Body" v-if="['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)">
+          <div
+            label="Request Body"
+            v-if="['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)"
+          >
             <ul>
               <li>
                 <label for="contentType" class="text-sm">{{ $t("content_type") }}</label>
                 <SmartAutoComplete
                   :source="validContentTypes"
                   :spellcheck="false"
-                  v-model="contentType"
+                  :value="request.contentType"
+                  @input="
+                    (value) => {
+                      this.request = { ...this.request, contentType: value }
+                    }
+                  "
                   styles="text-sm"
                 />
               </li>
@@ -98,8 +122,12 @@
                   <span>
                     <SmartToggle
                       v-if="canListParameters"
-                      :on="rawInput"
-                      @change="rawInput = $event"
+                      :on="request.rawInput"
+                      @change="
+                        (value) => {
+                          this.request = { ...this.request, rawInput: value }
+                        }
+                      "
                     >
                       {{ $t("raw_input") }}
                     </SmartToggle>
@@ -108,8 +136,8 @@
               </li>
             </ul>
             <HttpBodyParameters
-              v-if="!rawInput"
-              :bodyParams="bodyParams"
+              v-if="!request.rawInput"
+              :bodyParams="request.bodyParams"
               @clear-content="clearContent"
               @set-route-query-state="setRouteQueryState"
               @remove-request-body-param="removeRequestBodyParam"
@@ -117,12 +145,16 @@
             />
             <HttpRawBody
               v-else
-              :rawParams="rawParams"
-              :contentType="contentType"
-              :rawInput="rawInput"
+              :rawParams="request.rawParams"
+              :contentType="request.contentType"
+              :rawInput="request.rawInput"
               @clear-content="clearContent"
               @update-raw-body="updateRawBody"
-              @update-raw-input="updateRawInput = (value) => (rawInput = value)"
+              @update-raw-input="
+                updateRawInput = (value) => {
+                  this.request = { ...this.request, rawInput: value }
+                }
+              "
             />
           </div>
           <div class="row-wrapper">
@@ -180,12 +212,13 @@
             <SmartTab
               :id="'params'"
               :label="
-                $t('parameters') + `${params.length !== 0 ? ' \xA0 • \xA0 ' + params.length : ''}`
+                $t('parameters') +
+                `${request.params.length !== 0 ? ' \xA0 • \xA0 ' + request.params.length : ''}`
               "
               :selected="true"
             >
               <HttpParameters
-                :params="params"
+                :params="request.params"
                 @clear-content="clearContent"
                 @remove-request-param="removeRequestParam"
                 @add-request-param="addRequestParam"
@@ -195,11 +228,12 @@
             <SmartTab
               :id="'headers'"
               :label="
-                $t('headers') + `${headers.length !== 0 ? ' \xA0 • \xA0 ' + headers.length : ''}`
+                $t('headers') +
+                `${request.headers.length !== 0 ? ' \xA0 • \xA0 ' + request.headers.length : ''}`
               "
             >
               <HttpHeaders
-                :headers="headers"
+                :headers="request.headers"
                 @clear-content="clearContent"
                 @set-route-query-state="setRouteQueryState"
                 @remove-request-header="removeRequestHeader"
@@ -224,7 +258,15 @@
                       </div>
                     </div>
                     <span class="select-wrapper">
-                      <select id="auth" v-model="auth">
+                      <select
+                        id="auth"
+                        :value="request.auth"
+                        @change="
+                          (newName) => {
+                            this.request = { ...this.request, auth: newName.target.value }
+                          }
+                        "
+                      >
                         <option>None</option>
                         <option>Basic Auth</option>
                         <option>Bearer Token</option>
@@ -233,16 +275,30 @@
                     </span>
                   </li>
                 </ul>
-                <ul v-if="auth === 'Basic Auth'">
+                <ul v-if="request.auth === 'Basic Auth'">
                   <li>
-                    <input placeholder="User" name="http_basic_user" v-model="httpUser" />
+                    <input
+                      placeholder="User"
+                      name="http_basic_user"
+                      :value="request.httpUser"
+                      @change="
+                        (newName) => {
+                          this.request = { ...this.request, httpUser: newName.target.value }
+                        }
+                      "
+                    />
                   </li>
                   <li>
                     <input
                       placeholder="Password"
                       name="http_basic_passwd"
                       :type="passwordFieldType"
-                      v-model="httpPassword"
+                      :value="request.httpPassword"
+                      @change="
+                        (newName) => {
+                          this.request = { ...this.request, httpPassword: newName.target.value }
+                        }
+                      "
                     />
                   </li>
                   <div>
@@ -256,12 +312,21 @@
                     </li>
                   </div>
                 </ul>
-                <ul v-if="auth === 'Bearer Token' || auth === 'OAuth 2.0'">
+                <ul v-if="request.auth === 'Bearer Token' || request.auth === 'OAuth 2.0'">
                   <li>
                     <div class="row-wrapper">
-                      <input placeholder="Token" name="bearer_token" v-model="bearerToken" />
+                      <input
+                        placeholder="Token"
+                        name="bearer_token"
+                        :value="request.bearerToken"
+                        @change="
+                          (newName) => {
+                            this.request = { ...this.request, bearerToken: newName.target.value }
+                          }
+                        "
+                      />
                       <button
-                        v-if="auth === 'OAuth 2.0'"
+                        v-if="request.auth === 'OAuth 2.0'"
                         class="icon"
                         @click="showTokenListModal = !showTokenListModal"
                         v-tooltip.bottom="$t('use_token')"
@@ -269,7 +334,7 @@
                         <i class="material-icons">open_in_new</i>
                       </button>
                       <button
-                        v-if="auth === 'OAuth 2.0'"
+                        v-if="request.auth === 'OAuth 2.0'"
                         class="icon"
                         @click="showTokenRequest = !showTokenRequest"
                         v-tooltip.bottom="$t('get_token')"
@@ -280,7 +345,7 @@
                   </li>
                 </ul>
                 <div class="row-wrapper">
-                  <SmartToggle :on="!URL_EXCLUDES.auth" @change="setExclude('auth', !$event)">
+                  <SmartToggle :on="URL_INCLUDES.auth" @change="setInclude('auth', $event)">
                     {{ $t("include_in_url") }}
                   </SmartToggle>
                 </div>
@@ -324,7 +389,12 @@
                       id="token-name"
                       :placeholder="$t('optional')"
                       name="token_name"
-                      v-model="accessTokenName"
+                      :value="oauth2.accessTokenName"
+                      @change="
+                        ($event) => {
+                          this.oauth2 = { ...this.oauth2, accessTokenName: $event.target.value }
+                        }
+                      "
                       type="text"
                     />
                   </li>
@@ -335,11 +405,16 @@
                       {{ $t("oidc_discovery_url") }}
                     </label>
                     <input
-                      :disabled="this.authUrl !== '' || this.accessTokenUrl !== ''"
+                      :disabled="this.oauth2.authUrl !== '' || this.oauth2.accessTokenUrl !== ''"
                       id="oidc-discovery-url"
                       name="oidc_discovery_url"
                       type="url"
-                      v-model="oidcDiscoveryUrl"
+                      :value="oauth2.oidcDiscoveryUrl"
+                      @change="
+                        ($event) => {
+                          this.oauth2 = { ...this.oauth2, oidcDiscoveryUrl: $event.target.value }
+                        }
+                      "
                       placeholder="https://example.com/.well-known/openid-configuration"
                     />
                   </li>
@@ -348,11 +423,16 @@
                   <li>
                     <label for="auth-url">{{ $t("auth_url") }}</label>
                     <input
-                      :disabled="this.oidcDiscoveryUrl !== ''"
+                      :disabled="this.oauth2.oidcDiscoveryUrl !== ''"
                       id="auth-url"
                       name="auth_url"
                       type="url"
-                      v-model="authUrl"
+                      :value="oauth2.authUrl"
+                      @click="
+                        ($event) => {
+                          this.oauth2 = { ...this.oauth2, authUrl: $event.target.value }
+                        }
+                      "
                       placeholder="https://example.com/login/oauth/authorize"
                     />
                   </li>
@@ -363,11 +443,11 @@
                       {{ $t("access_token_url") }}
                     </label>
                     <input
-                      :disabled="this.oidcDiscoveryUrl !== ''"
+                      :disabled="this.oauth2.oidcDiscoveryUrl !== ''"
                       id="access-token-url"
                       name="access_token_url"
                       type="url"
-                      v-model="accessTokenUrl"
+                      :value="oauth2.accessTokenUrl"
                       placeholder="https://example.com/login/oauth/access_token"
                     />
                   </li>
@@ -379,7 +459,12 @@
                       id="client-id"
                       name="client_id"
                       type="text"
-                      v-model="clientId"
+                      :value="oauth2.clientId"
+                      @change="
+                        ($event) => {
+                          this.oauth2 = { ...this.oauth2, clientId: $event.target.value }
+                        }
+                      "
                       placeholder="Client ID"
                     />
                   </li>
@@ -391,7 +476,12 @@
                       id="scope"
                       name="scope"
                       type="text"
-                      v-model="scope"
+                      :value="oauth2.scope"
+                      @click="
+                        ($event) => {
+                          this.oauth2 = { ...this.oauth2, scope: $event.target.value }
+                        }
+                      "
                       placeholder="e.g. read:org"
                     />
                   </li>
@@ -569,7 +659,7 @@
 
     <HttpCodegenModal
       :show="showCodegenModal"
-      :requestTypeProp="requestType"
+      :requestTypeProp="request.requestType"
       :requestCode="requestCode"
       @hide-modal="showCodegenModal = false"
       @set-request-type="setRequestType"
@@ -577,7 +667,7 @@
 
     <HttpTokenList
       :show="showTokenListModal"
-      :tokens="tokens"
+      :tokens="oauth2.tokens"
       @clear-content="clearContent"
       @use-oauth-token="useOAuthToken"
       @remove-oauth-token="removeOAuthToken"
@@ -600,7 +690,7 @@
           <label for="token-req-list">{{ $t("token_req_list") }}</label>
           <div>
             <button
-              :disabled="this.tokenReqs.length === 0"
+              :disabled="oauth2.tokenReqs.length === 0"
               class="icon"
               @click="showTokenRequestList = false"
               v-tooltip.bottom="$t('use_token_req')"
@@ -608,7 +698,7 @@
               <i class="material-icons">input</i>
             </button>
             <button
-              :disabled="this.tokenReqs.length === 0"
+              :disabled="oauth2.tokenReqs.length === 0"
               class="icon"
               @click="removeOAuthTokenReq"
               v-tooltip.bottom="$t('delete')"
@@ -622,11 +712,16 @@
             <span class="select-wrapper">
               <select
                 id="token-req-list"
-                v-model="tokenReqSelect"
-                :disabled="this.tokenReqs.length === 0"
-                @change="tokenReqChange($event)"
+                :value="oauth2.tokenReqSelect"
+                @change="
+                  ($event) => {
+                    this.oauth2 = { ...oauth2, tokenReqSelect: $event.target.value }
+                    tokenReqChange($event)
+                  }
+                "
+                :disabled="oauth2.tokenReqs.length === 0"
               >
-                <option v-for="(req, index) in tokenReqs" :key="index" :value="req.name">
+                <option v-for="(req, index) in oauth2.tokenReqs" :key="index" :value="req.name">
                   {{ req.name }}
                 </option>
               </select>
@@ -634,7 +729,14 @@
           </li>
         </ul>
         <label for="token-req-name">{{ $t("token_req_name") }}</label>
-        <input v-model="tokenReqName" />
+        <input
+          :value="oauth2.tokenReqName"
+          @change="
+            ($event) => {
+              this.oauth2 = { ...this.oauth2, tokenReqName: $event.target.value }
+            }
+          "
+        />
         <label for="token-req-details">
           {{ $t("token_req_details") }}
         </label>
@@ -725,7 +827,7 @@ export default {
     return {
       SCROLL_INTO_ENABLED: getSettingSubject("SCROLL_INTO_ENABLED"),
       PROXY_ENABLED: getSettingSubject("PROXY_ENABLED"),
-      URL_EXCLUDES: getSettingSubject("URL_EXCLUDES"),
+      URL_INCLUDES: getSettingSubject("URL_INCLUDES"),
       EXPERIMENTAL_URL_BAR_ENABLED: getSettingSubject("EXPERIMENTAL_URL_BAR_ENABLED"),
 
       SYNC_COLLECTIONS: getSettingSubject("syncCollections"),
@@ -738,17 +840,21 @@ export default {
       handler(canListParameters) {
         if (canListParameters) {
           this.$nextTick(() => {
-            this.rawInput = Boolean(this.rawParams && this.rawParams !== "{}")
+            this.request = {
+              ...this.request,
+              rawInput: Boolean(this.request.rawParams && this.request.rawParams !== "{}"),
+            }
           })
         } else {
-          this.rawInput = true
+          this.request = { ...this.request, rawInput: true }
         }
       },
     },
-    contentType(contentType, oldContentType) {
+    request(request, oldRequest) {
+      if (request.contentType == oldRequest.contentType) return
       const getDefaultParams = (contentType) => {
-        if (isJSONContentType(contentType)) return "{}"
-        switch (contentType) {
+        if (isJSONContentType(request.contentType)) return "{}"
+        switch (request.contentType) {
           case "application/xml":
             return "<?xml version='1.0' encoding='utf-8'?>"
           case "text/html":
@@ -756,8 +862,11 @@ export default {
         }
         return ""
       }
-      if (!this.rawParams || this.rawParams === getDefaultParams(oldContentType)) {
-        this.rawParams = getDefaultParams(contentType)
+      if (
+        !this.request.rawParams ||
+        this.request.rawParams === getDefaultParams(oldRequest.contentType)
+      ) {
+        this.request.rawParams = getDefaultParams(request.contentType)
       }
       this.setRouteQueryState()
     },
@@ -785,22 +894,12 @@ export default {
     selectedRequest(newValue, oldValue) {
       // @TODO: Convert all variables to single request variable
       if (!newValue) return
+      this.request = newValue
       this.uri = newValue.url + newValue.path
       this.url = newValue.url
       this.path = newValue.path
-      this.method = newValue.method
-      this.auth = newValue.auth
-      this.httpUser = newValue.httpUser
-      this.httpPassword = newValue.httpPassword
       this.passwordFieldType = newValue.passwordFieldType
       this.bearerToken = newValue.bearerToken
-      this.headers = newValue.headers
-      this.params = newValue.params
-      this.bodyParams = newValue.bodyParams
-      this.rawParams = newValue.rawParams
-      this.rawInput = newValue.rawInput
-      this.contentType = newValue.contentType
-      this.requestType = newValue.requestType
       if (newValue.preRequestScript) {
         this.showPreRequestScript = true
         this.preRequestScript = newValue.preRequestScript
@@ -809,16 +908,18 @@ export default {
         this.testsEnabled = true
         this.testScript = newValue.testScript
       }
-      this.name = newValue.name
     },
     editingRequest(newValue) {
       this.editRequest = newValue
       this.showSaveRequestModal = true
     },
     method() {
-      this.contentType = ["POST", "PUT", "PATCH", "DELETE"].includes(this.method)
-        ? "application/json"
-        : ""
+      this.request = {
+        ...this.request,
+        contentType: ["POST", "PUT", "PATCH", "DELETE"].includes(this.request.method)
+          ? "application/json"
+          : "",
+      }
     },
     preRequestScript(val, oldVal) {
       this.uri = this.uri
@@ -831,9 +932,9 @@ export default {
      */
     canListParameters() {
       return (
-        this.contentType === "application/x-www-form-urlencoded" ||
-        this.contentType === "multipart/form-data" ||
-        isJSONContentType(this.contentType)
+        this.request.contentType === "application/x-www-form-urlencoded" ||
+        this.request.contentType === "multipart/form-data" ||
+        isJSONContentType(this.request.contentType)
       )
     },
     uri: {
@@ -843,9 +944,12 @@ export default {
       set(value) {
         this.$store.commit("setState", { value, attribute: "uri" })
         let url = value
-        if ((this.preRequestScript && this.showPreRequestScript) || hasPathParams(this.params)) {
+        if (
+          (this.preRequestScript && this.showPreRequestScript) ||
+          hasPathParams(this.request.params)
+        ) {
           let environmentVariables = getEnvironmentVariablesFromScript(this.preRequestScript)
-          environmentVariables = addPathParamsToVariables(this.params, environmentVariables)
+          environmentVariables = addPathParamsToVariables(this.request.params, environmentVariables)
           url = parseTemplateString(value, environmentVariables)
         }
         let result = parseUrlAndPath(url)
@@ -861,14 +965,6 @@ export default {
         this.$store.commit("setState", { value, attribute: "url" })
       },
     },
-    method: {
-      get() {
-        return this.$store.state.request.method
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "method" })
-      },
-    },
     path: {
       get() {
         return this.$store.state.request.path
@@ -877,162 +973,12 @@ export default {
         this.$store.commit("setState", { value, attribute: "path" })
       },
     },
-    name: {
+    request: {
       get() {
-        return this.$store.state.request.name
+        return this.$store.state.request
       },
       set(value) {
-        this.$store.commit("setState", { value, attribute: "name" })
-      },
-    },
-    auth: {
-      get() {
-        return this.$store.state.request.auth
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "auth" })
-      },
-    },
-    httpUser: {
-      get() {
-        return this.$store.state.request.httpUser
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "httpUser" })
-      },
-    },
-    httpPassword: {
-      get() {
-        return this.$store.state.request.httpPassword
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "httpPassword" })
-      },
-    },
-    bearerToken: {
-      get() {
-        return this.$store.state.request.bearerToken
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "bearerToken" })
-      },
-    },
-    tokens: {
-      get() {
-        return this.$store.state.oauth2.tokens
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "tokens" })
-      },
-    },
-    tokenReqs: {
-      get() {
-        return this.$store.state.oauth2.tokenReqs
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "tokenReqs" })
-      },
-    },
-    tokenReqSelect: {
-      get() {
-        return this.$store.state.oauth2.tokenReqSelect
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "tokenReqSelect" })
-      },
-    },
-    tokenReqName: {
-      get() {
-        return this.$store.state.oauth2.tokenReqName
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "tokenReqName" })
-      },
-    },
-    accessTokenName: {
-      get() {
-        return this.$store.state.oauth2.accessTokenName
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", {
-          value,
-          attribute: "accessTokenName",
-        })
-      },
-    },
-    oidcDiscoveryUrl: {
-      get() {
-        return this.$store.state.oauth2.oidcDiscoveryUrl
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", {
-          value,
-          attribute: "oidcDiscoveryUrl",
-        })
-      },
-    },
-    authUrl: {
-      get() {
-        return this.$store.state.oauth2.authUrl
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "authUrl" })
-      },
-    },
-    accessTokenUrl: {
-      get() {
-        return this.$store.state.oauth2.accessTokenUrl
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "accessTokenUrl" })
-      },
-    },
-    clientId: {
-      get() {
-        return this.$store.state.oauth2.clientId
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "clientId" })
-      },
-    },
-    scope: {
-      get() {
-        return this.$store.state.oauth2.scope
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "scope" })
-      },
-    },
-    state: {
-      get() {
-        return this.$store.state.oauth2.state
-      },
-      set(value) {
-        this.$store.commit("setOAuth2", { value, attribute: "state" })
-      },
-    },
-    headers: {
-      get() {
-        return this.$store.state.request.headers
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "headers" })
-      },
-    },
-    params: {
-      get() {
-        return this.$store.state.request.params
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "params" })
-      },
-    },
-    bodyParams: {
-      get() {
-        return this.$store.state.request.bodyParams
-      },
-      set(value) {
-        this.$store.commit("setState", { value, attribute: "bodyParams" })
+        this.$store.commit("updateRequest", value)
       },
     },
     rawParams: {
@@ -1081,6 +1027,14 @@ export default {
         this.$store.commit("setState", { value, attribute: "contentType" })
       },
     },
+    oauth2: {
+      get() {
+        return this.$store.state.oauth2
+      },
+      set(value) {
+        this.$store.commit("updateOAuth2", value)
+      },
+    },
     passwordFieldType: {
       get() {
         return this.$store.state.request.passwordFieldType
@@ -1098,25 +1052,21 @@ export default {
     editingRequest() {
       return this.$store.state.postwoman.editingRequest
     },
-    requestName() {
-      return this.name
-    },
     isValidURL() {
       // if showPreRequestScript, we cannot determine if a URL is valid because the full string is not known ahead of time
       return this.showPreRequestScript || httpValid(this.url)
     },
     hasRequestBody() {
-      return ["POST", "PUT", "PATCH", "DELETE"].includes(this.method)
+      return ["POST", "PUT", "PATCH", "DELETE"].includes(this.request.method)
     },
     pathName() {
       return this.path.match(/^([^?]*)\??/)[1]
     },
     rawRequestBody() {
-      const { bodyParams, contentType } = this
-      if (isJSONContentType(contentType)) {
+      if (isJSONContentType(this.request.contentType)) {
         try {
           const obj = JSON.parse(
-            `{${bodyParams
+            `{${this.request.bodyParams
               .filter((item) => (item.hasOwnProperty("active") ? item.active == true : true))
               .filter(({ key }) => !!key)
               .map(({ key, value }) => `"${key}": "${value}"`)
@@ -1135,7 +1085,7 @@ export default {
           return "invalid"
         }
       } else {
-        return bodyParams
+        return this.request.bodyParams
           .filter((item) => (item.hasOwnProperty("active") ? item.active == true : true))
           .filter(({ key }) => !!key)
           .map(({ key, value }) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
@@ -1143,17 +1093,17 @@ export default {
       }
     },
     queryString() {
-      const result = getQueryParams(this.params)
+      const result = getQueryParams(this.request.params)
         .map(({ key, value }) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join("&")
       return result === "" ? "" : `?${result}`
     },
     requestCode() {
       let headers = []
-      if (this.preRequestScript || hasPathParams(this.params)) {
+      if (this.preRequestScript || hasPathParams(this.request.params)) {
         let environmentVariables = getEnvironmentVariablesFromScript(this.preRequestScript)
-        environmentVariables = addPathParamsToVariables(this.params, environmentVariables)
-        for (let k of this.headers.filter((item) =>
+        environmentVariables = addPathParamsToVariables(this.request.params, environmentVariables)
+        for (let k of this.request.headers.filter((item) =>
           item.hasOwnProperty("active") ? item.active == true : true
         )) {
           const kParsed = parseTemplateString(k.key, environmentVariables)
@@ -1162,29 +1112,22 @@ export default {
         }
       }
 
-      return generateCodeWithGenerator(this.requestType, {
-        auth: this.auth,
-        method: this.method,
+      return generateCodeWithGenerator(this.request.requestType, {
+        ...this.request,
         url: this.url,
         pathName: this.pathName,
         queryString: this.queryString,
-        httpUser: this.httpUser,
-        httpPassword: this.httpPassword,
-        bearerToken: this.bearerToken,
-        headers,
-        rawInput: this.rawInput,
-        rawParams: this.rawParams,
+        rawParams: this.request.rawParams,
         rawRequestBody: this.rawRequestBody,
-        contentType: this.contentType,
       })
     },
     tokenReqDetails() {
       const details = {
-        oidcDiscoveryUrl: this.oidcDiscoveryUrl,
-        authUrl: this.authUrl,
-        accessTokenUrl: this.accessTokenUrl,
-        clientId: this.clientId,
-        scope: this.scope,
+        oidcDiscoveryUrl: this.oauth2.oidcDiscoveryUrl,
+        authUrl: this.oauth2.authUrl,
+        accessTokenUrl: this.oauth2.accessTokenUrl,
+        clientId: this.oauth2.clientId,
+        scope: this.oauth2.scope,
       }
       return JSON.stringify(details, null, 2)
     },
@@ -1225,31 +1168,20 @@ export default {
       })
     },
     handleUseHistory(entry) {
-      this.name = entry.name
-      this.method = entry.method
+      this.request = entry
+      console.log(this.request)
       this.uri = entry.url + entry.path
       this.url = entry.url
       this.path = entry.path
       this.showPreRequestScript = entry.usesPreScripts
       this.preRequestScript = entry.preRequestScript
-      this.auth = entry.auth
-      this.httpUser = entry.httpUser
-      this.httpPassword = entry.httpPassword
-      this.bearerToken = entry.bearerToken
-      this.headers = entry.headers
-      this.params = entry.params
-      this.bodyParams = entry.bodyParams
-      this.rawParams = entry.rawParams
-      this.rawInput = entry.rawInput
-      this.contentType = entry.contentType
-      this.requestType = entry.requestType
       this.testScript = entry.testScript
       this.testsEnabled = entry.usesPostScripts
       if (this.SCROLL_INTO_ENABLED) this.scrollInto("request")
     },
     async makeRequest(auth, headers, requestBody, preRequestScript) {
       const requestOptions = {
-        method: this.method,
+        method: this.request.method,
         url: this.url + this.pathName + this.queryString,
         auth,
         headers,
@@ -1257,9 +1189,9 @@ export default {
         credentials: true,
       }
 
-      if (preRequestScript || hasPathParams(this.params)) {
+      if (preRequestScript || hasPathParams(this.request.params)) {
         let environmentVariables = getEnvironmentVariablesFromScript(preRequestScript)
-        environmentVariables = addPathParamsToVariables(this.params, environmentVariables)
+        environmentVariables = addPathParamsToVariables(this.request.params, environmentVariables)
         requestOptions.url = parseTemplateString(requestOptions.url, environmentVariables)
         if (!(requestOptions.data instanceof FormData)) {
           // TODO: Parse env variables for form data too
@@ -1299,10 +1231,10 @@ export default {
         body: this.$t("loading"),
       }
       const auth =
-        this.auth === "Basic Auth"
+        this.request.auth === "Basic Auth"
           ? {
-              username: this.httpUser,
-              password: this.httpPassword,
+              username: this.request.httpUser,
+              password: this.request.httpPassword,
             }
           : null
       let headers = {}
@@ -1314,15 +1246,15 @@ export default {
       // If the request has a body, we want to ensure Content-Type is sent.
       let requestBody
       if (this.hasRequestBody) {
-        requestBody = this.rawInput ? this.rawParams : this.rawRequestBody
+        requestBody = this.request.rawInput ? this.request.rawParams : this.rawRequestBody
         Object.assign(headers, {
-          "Content-Type": `${this.contentType}; charset=utf-8`,
+          "Content-Type": `${this.request.contentType}; charset=utf-8`,
         })
       }
       requestBody = requestBody ? requestBody.toString() : null
-      if (this.contentType === "multipart/form-data") {
+      if (this.request.contentType === "multipart/form-data") {
         const formData = new FormData()
-        for (const bodyParam of this.bodyParams.filter((item) =>
+        for (const bodyParam of this.request.bodyParams.filter((item) =>
           item.hasOwnProperty("active") ? item.active == true : true
         )) {
           if (bodyParam?.value?.[0] instanceof File) {
@@ -1336,14 +1268,14 @@ export default {
         requestBody = formData
       }
       // If the request uses a token for auth, we want to make sure it's sent here.
-      if (this.auth === "Bearer Token" || this.auth === "OAuth 2.0")
-        headers["Authorization"] = `Bearer ${this.bearerToken}`
+      if (this.request.auth === "Bearer Token" || this.request.auth === "OAuth 2.0")
+        headers["Authorization"] = `Bearer ${this.request.bearerToken}`
       headers = Object.assign(
         // Clone the app headers object first, we don't want to
         // mutate it with the request headers added by default.
         Object.assign(
           {},
-          this.headers.filter((item) =>
+          this.request.headers.filter((item) =>
             item.hasOwnProperty("active") ? item.active == true : true
           )
         )
@@ -1376,36 +1308,30 @@ export default {
           this.response.body = payload.data
           // Addition of an entry to the history component.
           const entry = {
-            name: this.requestName,
+            ...this.request,
             status: this.response.status,
             date: new Date().toLocaleDateString(),
             time: new Date().toLocaleTimeString(),
             updatedOn: new Date(),
-            method: this.method,
             url: this.url,
             path: this.path,
             usesPreScripts: this.showPreRequestScript,
             preRequestScript: this.preRequestScript,
             duration,
             star: false,
-            auth: this.auth,
-            httpUser: this.httpUser,
-            httpPassword: this.httpPassword,
-            bearerToken: this.bearerToken,
-            headers: this.headers,
-            params: this.params,
-            bodyParams: this.bodyParams,
-            rawParams: this.rawParams,
-            rawInput: this.rawInput,
-            contentType: this.contentType,
-            requestType: this.requestType,
             testScript: this.testScript,
             usesPostScripts: this.testsEnabled,
           }
 
-          if ((this.preRequestScript && this.showPreRequestScript) || hasPathParams(this.params)) {
+          if (
+            (this.preRequestScript && this.showPreRequestScript) ||
+            hasPathParams(this.request.params)
+          ) {
             let environmentVariables = getEnvironmentVariablesFromScript(this.preRequestScript)
-            environmentVariables = addPathParamsToVariables(this.params, environmentVariables)
+            environmentVariables = addPathParamsToVariables(
+              this.request.params,
+              environmentVariables
+            )
             entry.path = parseTemplateString(entry.path, environmentVariables)
             entry.url = parseTemplateString(entry.url, environmentVariables)
           }
@@ -1432,38 +1358,29 @@ export default {
             this.response.body = error.response.data
             // Addition of an entry to the history component.
             const entry = {
-              name: this.requestName,
+              ...this.request,
               status: this.response.status,
               date: new Date().toLocaleDateString(),
               time: new Date().toLocaleTimeString(),
               updatedOn: new Date(),
-              method: this.method,
               url: this.url,
               path: this.path,
               usesPreScripts: this.showPreRequestScript,
               preRequestScript: this.preRequestScript,
               star: false,
-              auth: this.auth,
-              httpUser: this.httpUser,
-              httpPassword: this.httpPassword,
-              bearerToken: this.bearerToken,
-              headers: this.headers,
-              params: this.params,
-              bodyParams: this.bodyParams,
-              rawParams: this.rawParams,
-              rawInput: this.rawInput,
-              contentType: this.contentType,
-              requestType: this.requestType,
               testScript: this.testScript,
               usesPostScripts: this.testsEnabled,
             }
 
             if (
               (this.preRequestScript && this.showPreRequestScript) ||
-              hasPathParams(this.params)
+              hasPathParams(this.request.params)
             ) {
               let environmentVariables = getEnvironmentVariablesFromScript(this.preRequestScript)
-              environmentVariables = addPathParamsToVariables(this.params, environmentVariables)
+              environmentVariables = addPathParamsToVariables(
+                this.request.params,
+                environmentVariables
+              )
               entry.path = parseTemplateString(entry.path, environmentVariables)
               entry.url = parseTemplateString(entry.url, environmentVariables)
             }
@@ -1545,7 +1462,7 @@ export default {
           parsedParams.push({ key: kParsed, value: valParsed, active: true })
         }
         this.paramsWatchEnabled = false
-        this.params = parsedParams
+        this.request = { ...this.request, params: parsedParams }
       }
     },
     addRequestHeader() {
@@ -1558,14 +1475,14 @@ export default {
     },
     removeRequestHeader(index) {
       // .slice() gives us an entirely new array rather than giving us just the reference
-      const oldHeaders = this.headers.slice()
+      const oldHeaders = this.request.headers.slice()
       this.$store.commit("removeHeaders", index)
       this.$toast.error(this.$t("deleted"), {
         icon: "delete",
         action: {
           text: this.$t("undo"),
           onClick: (e, toastObject) => {
-            this.headers = oldHeaders
+            this.request = { ...this.request, headers: oldHeaders }
             toastObject.remove()
           },
         },
@@ -1577,14 +1494,14 @@ export default {
     },
     removeRequestParam(index) {
       // .slice() gives us an entirely new array rather than giving us just the reference
-      const oldParams = this.params.slice()
+      const oldParams = this.request.params.slice()
       this.$store.commit("removeParams", index)
       this.$toast.error(this.$t("deleted"), {
         icon: "delete",
         action: {
           text: this.$t("undo"),
           onClick: (e, toastObject) => {
-            this.params = oldParams
+            this.request = { ...this.request, params: oldParams }
             toastObject.remove()
           },
         },
@@ -1603,7 +1520,7 @@ export default {
         action: {
           text: this.$t("undo"),
           onClick: (e, toastObject) => {
-            this.bodyParams = oldBodyParams
+            this.request = { ...this.request, bodyParams: oldBodyParams }
             toastObject.remove()
           },
         },
@@ -1636,50 +1553,44 @@ export default {
       }
     },
     setRouteQueryState() {
-      const flat = (key) => (this[key] !== "" ? `${key}=${this[key]}&` : "")
-      const deep = (key) => {
-        const haveItems = [...this[key]].length
-        if (haveItems && this[key]["value"] !== "") {
-          // Exclude files fro  query params
-          const filesRemoved = this[key].filter((item) => !(item?.value?.[0] instanceof File))
-          return `${key}=${JSON.stringify(filesRemoved)}&`
+      let deeps = ["params", "bodyParams", "headers"]
+      let req_url = ""
+      console.log(this.URL_INCLUDES)
+      for (var attr in this.request) {
+        if (
+          this.URL_INCLUDES[attr] &&
+          this.request[attr] &&
+          this.request[attr] != "" &&
+          !deeps.find((x) => x == attr)
+        ) {
+          req_url += `${attr}=${this.request[attr]}&`
         }
-        return ""
       }
-      let flats = [
-        "method",
-        "url",
-        "path",
-        !this.URL_EXCLUDES.auth ? "auth" : null,
-        !this.URL_EXCLUDES.httpUser ? "httpUser" : null,
-        !this.URL_EXCLUDES.httpPassword ? "httpPassword" : null,
-        !this.URL_EXCLUDES.bearerToken ? "bearerToken" : null,
-        "contentType",
-      ]
-        .filter((item) => item !== null)
-        .map((item) => flat(item))
-      const deeps = ["headers", "params"].map((item) => deep(item))
-      const bodyParams = this.rawInput ? [flat("rawParams")] : [deep("bodyParams")]
+      for (var attr of deeps) {
+        if (this.request[attr].length > 0) {
+          req_url += `${attr}=${JSON.stringify(this.request[attr])}&`
+        }
+      }
+      req_url = req_url.slice(0, -1)
       history.replaceState(
         window.location.href,
         "",
-        `${this.$router.options.base}?${encodeURI(
-          flats.concat(deeps, bodyParams).join("").slice(0, -1)
-        )}`
+        `${this.$router.options.base}?${encodeURI(req_url)}`
       )
     },
     setRouteQueries(queries) {
       if (typeof queries !== "object") throw new Error("Route query parameters must be a Object")
+      console.log(queries)
+      let request = this.request
       for (const key in queries) {
-        if (["headers", "params", "bodyParams"].includes(key))
-          this[key] = JSON.parse(decodeURI(encodeURI(queries[key])))
-        if (key === "rawParams") {
-          this.rawInput = true
-          this.rawParams = queries["rawParams"]
-        } else if (typeof this[key] === "string") {
-          this[key] = queries[key]
+        if (["params", "bodyParams", "headers"].includes(key))
+          request[key] = JSON.parse(decodeURI(encodeURI(queries[key])))
+        else if (typeof this.request[key] === "string") {
+          request[key] = queries[key]
         }
       }
+      this.request = request
+      console.log(this.request)
     },
     // observeRequestButton() {
     //   const requestElement = this.$refs.request
@@ -1708,16 +1619,13 @@ export default {
         this.url = origin
         this.path = pathname
         this.uri = this.url + this.path
-        this.headers = []
-        if (parsedCurl.query) {
-          for (const key of Object.keys(parsedCurl.query)) {
-            this.$store.commit("addParams", {
-              key,
-              value: parsedCurl.query[key],
-              type: "query",
-              active: true,
-            })
-          }
+        this.request = {
+          ...this.request,
+          headers: [],
+          method: parsedCurl.method.toUpperCase(),
+          params: parsedCurl.query.forEach((key) => {
+            return { key: key, value: parsedCurl.query[key], type: "query", active: true }
+          }),
         }
         if (parsedCurl.headers) {
           for (const key of Object.keys(parsedCurl.headers)) {
@@ -1727,10 +1635,8 @@ export default {
             })
           }
         }
-        this.method = parsedCurl.method.toUpperCase()
         if (parsedCurl["data"]) {
-          this.rawInput = true
-          this.rawParams = parsedCurl["data"]
+          this.request = { ...this.request, rawInput: true, rawParams: parsedCurl["data"] }
         }
         this.showCurlImportModal = false
       } catch (error) {
@@ -1746,65 +1652,76 @@ export default {
     clearContent(name, { target }) {
       switch (name) {
         case "bodyParams":
-          this.bodyParams = []
+          this.request = { ...this.request, bodyParams: [] }
           this.files = []
           break
         case "rawParams":
-          this.rawParams = "{}"
+          this.request = { ...this.request, rawParams: "{}" }
           break
         case "parameters":
-          this.params = []
+          this.request = { ...this.request, params: [] }
           break
         case "auth":
-          this.auth = "None"
-          this.httpUser = ""
-          this.httpPassword = ""
-          this.bearerToken = ""
+          this.request = {
+            ...this.request,
+            auth: "None",
+            httpUser: "",
+            httpPassword: "",
+            bearerToken: "",
+          }
+          this.oauth2 = { ...this.oauth2, tokens: [], tokenReqs: [] }
           this.showTokenRequest = false
-          this.tokens = []
-          this.tokenReqs = []
           break
         case "access_token":
-          this.accessTokenName = ""
-          this.oidcDiscoveryUrl = ""
-          this.authUrl = ""
-          this.accessTokenUrl = ""
-          this.clientId = ""
-          this.scope = ""
+          this.oauth2 = {
+            ...this.oauth2,
+            accessTokenName: "",
+            oidcDiscoveryUrl: "",
+            authUrl: "",
+            accessTokenUrl: "",
+            clientId: "",
+            scope: "",
+          }
           break
         case "headers":
-          this.headers = []
+          this.request = { ...this.request, headers: [] }
           break
         case "tests":
           this.testReports = []
           break
         case "tokens":
-          this.tokens = []
+          this.oauth2 = { ...this.oauth2, tokens: [] }
           break
         default:
-          this.method = "GET"
+          this.request = {
+            ...this.request,
+            method: "GET",
+            name: "Untitled request",
+            auth: "None",
+            httpUser: "",
+            httpPassword: "",
+            bearerToken: "",
+            headers: [],
+            bodyParams: [],
+            rawParams: "{}",
+            params: [],
+          }
+          this.oauth2 = {
+            ...this.oauth2,
+            tokens: [],
+            tokenReqs: [],
+            accessTokenName: "",
+            oidcDiscoveryUrl: "",
+            authUrl: "",
+            accessTokenUrl: "",
+            clientId: "",
+            scope: "",
+          }
           this.url = "https://httpbin.org"
           this.path = "/get"
           this.uri = this.url + this.path
-          this.name = "Untitled request"
-          this.bodyParams = []
-          this.rawParams = "{}"
           this.files = []
-          this.params = []
-          this.auth = "None"
-          this.httpUser = ""
-          this.httpPassword = ""
-          this.bearerToken = ""
           this.showTokenRequest = false
-          this.tokens = []
-          this.tokenReqs = []
-          this.accessTokenName = ""
-          this.oidcDiscoveryUrl = ""
-          this.authUrl = ""
-          this.accessTokenUrl = ""
-          this.clientId = ""
-          this.scope = ""
-          this.headers = []
           this.testReports = []
       }
       target.innerHTML = this.doneButton
@@ -1818,22 +1735,10 @@ export default {
       this.editRequest = {
         url: decodeURI(urlAndPath.url),
         path: decodeURI(urlAndPath.path),
-        method: this.method,
-        auth: this.auth,
-        httpUser: this.httpUser,
-        httpPassword: this.httpPassword,
+        ...this.request,
         passwordFieldType: this.passwordFieldType,
-        bearerToken: this.bearerToken,
-        headers: this.headers,
-        params: this.params,
-        bodyParams: this.bodyParams,
-        rawParams: this.rawParams,
-        rawInput: this.rawInput,
-        contentType: this.contentType,
-        requestType: this.requestType,
         preRequestScript: this.showPreRequestScript == true ? this.preRequestScript : null,
         testScript: this.testsEnabled == true ? this.testScript : null,
-        name: this.requestName,
       }
       if (this.selectedRequest.url) {
         this.editRequest = Object.assign({}, this.selectedRequest, this.editRequest)
@@ -1844,27 +1749,31 @@ export default {
       this.showSaveRequestModal = false
       this.editRequest = {}
     },
-    setExclude(excludedField, excluded) {
-      const update = clone(this.URL_EXCLUDES)
+    setInclude(field, included) {
+      const update = clone(this.URL_INCLUDES)
 
-      if (excludedField === "auth") {
-        update.auth = excluded
-        update.httpUser = excluded
-        update.httpPassword = excluded
-        update.bearerToken = excluded
+      console.log(this.URL_INCLUDES, field, included)
+      if (field === "auth") {
+        update.auth = included
+        update.httpUser = included
+        update.httpPassword = included
+        update.bearerToken = included
       } else {
-        update[excludedField] = excluded
+        update[field] = included
       }
 
-      applySetting("URL_EXCLUDES", update)
+      applySetting("URL_INCLUDES", update)
 
       this.setRouteQueryState()
     },
     updateRawBody(rawParams) {
-      this.rawParams = rawParams
+      this.request = { ...this.request, rawParams: rawParams }
     },
     async handleAccessTokenRequest() {
-      if (this.oidcDiscoveryUrl === "" && (this.authUrl === "" || this.accessTokenUrl === "")) {
+      if (
+        this.oauth2.oidcDiscoveryUrl === "" &&
+        (this.oauth2.authUrl === "" || this.oauth2.accessTokenUrl === "")
+      ) {
         this.$toast.error(this.$t("complete_config_urls"), {
           icon: "error",
         })
@@ -1873,11 +1782,11 @@ export default {
       try {
         const tokenReqParams = {
           grantType: "code",
-          oidcDiscoveryUrl: this.oidcDiscoveryUrl,
-          authUrl: this.authUrl,
-          accessTokenUrl: this.accessTokenUrl,
-          clientId: this.clientId,
-          scope: this.scope,
+          oidcDiscoveryUrl: this.oauth2.oidcDiscoveryUrl,
+          authUrl: this.oauth2.authUrl,
+          accessTokenUrl: this.oauth2.accessTokenUrl,
+          clientId: this.oauth2.clientId,
+          scope: this.oauth2.scope,
         }
         await tokenRequest(tokenReqParams)
       } catch (e) {
@@ -1889,9 +1798,9 @@ export default {
     async oauthRedirectReq() {
       const tokenInfo = await oauthRedirect()
       if (Object.prototype.hasOwnProperty.call(tokenInfo, "access_token")) {
-        this.bearerToken = tokenInfo.access_token
+        this.request = { ...this.request, bearerToken: tokenInfo.access_token }
         this.addOAuthToken({
-          name: this.accessTokenName,
+          name: this.oauth2.accessTokenName,
           value: tokenInfo.access_token,
         })
       }
@@ -1904,26 +1813,26 @@ export default {
       return false
     },
     removeOAuthToken(index) {
-      const oldTokens = this.tokens.slice()
+      const oldTokens = this.oauth2.tokens.slice()
       this.$store.commit("removeOAuthToken", index)
       this.$toast.error(this.$t("deleted"), {
         icon: "delete",
         action: {
           text: this.$t("undo"),
           onClick: (e, toastObject) => {
-            this.tokens = oldTokens
+            this.oauth2 = { ...this.oauth2, tokens: oldTokens }
             toastObject.remove()
           },
         },
       })
     },
     useOAuthToken(value) {
-      this.bearerToken = value
+      this.request = { ...this.request, bearerToken: value }
       this.showTokenListModal = false
     },
     addOAuthTokenReq() {
       try {
-        const name = this.tokenReqName
+        const name = this.oauth2.tokenReqName
         const details = JSON.parse(this.tokenReqDetails)
         this.$store.commit("addOAuthTokenReq", {
           name,
@@ -1938,8 +1847,10 @@ export default {
       }
     },
     removeOAuthTokenReq(index) {
-      const oldTokenReqs = this.tokenReqs.slice()
-      const targetReqIndex = this.tokenReqs.findIndex(({ name }) => name === this.tokenReqName)
+      const oldTokenReqs = this.oauth2.tokenReqs.slice()
+      const targetReqIndex = this.oauth2.tokenReqs.findIndex(
+        ({ name }) => name === this.oauth2.tokenReqName
+      )
       if (targetReqIndex < 0) return
       this.$store.commit("removeOAuthTokenReq", targetReqIndex)
       this.$toast.error(this.$t("deleted"), {
@@ -1947,24 +1858,29 @@ export default {
         action: {
           text: this.$t("undo"),
           onClick: (e, toastObject) => {
-            this.tokenReqs = oldTokenReqs
+            this.oauth2 = { ...this.oauth2, tokenReqs: oldTokenReqs }
             toastObject.remove()
           },
         },
       })
     },
-    tokenReqChange({ target }) {
-      const { details, name } = this.tokenReqs.find(({ name }) => name === target.value)
+    tokenReqChange($event) {
+      const { details, name } = this.oauth2.tokenReqs.find(
+        ({ name }) => name === $event.target.value
+      )
       const { oidcDiscoveryUrl, authUrl, accessTokenUrl, clientId, scope } = details
-      this.tokenReqName = name
-      this.oidcDiscoveryUrl = oidcDiscoveryUrl
-      this.authUrl = authUrl
-      this.accessTokenUrl = accessTokenUrl
-      this.clientId = clientId
-      this.scope = scope
+      this.oauth2 = {
+        ...this.oauth2,
+        tokenReqName: name,
+        oidcDiscoveryUrl: oidcDiscoveryUrl,
+        authUrl: authUrl,
+        accessTokenUrl: accessTokenUrl,
+        clientId: clientId,
+        scope: scope,
+      }
     },
     setRequestType(val) {
-      this.requestType = val
+      this.request = { ...this.request, requestType: val }
     },
   },
   async mounted() {
@@ -1995,24 +1911,30 @@ export default {
         this.showCurlImportModal = this.showTokenListModal = this.showTokenRequestList = this.showSaveRequestModal = this.showCodegenModal = false
       }
       if ((e.key === "g" || e.key === "G") && e.altKey) {
-        this.method = "GET"
+        this.request = { ...this.request, method: "GET" }
       }
       if ((e.key === "h" || e.key === "H") && e.altKey) {
-        this.method = "HEAD"
+        this.request = { ...this.request, method: "HEAD" }
       }
       if ((e.key === "p" || e.key === "P") && e.altKey) {
-        this.method = "POST"
+        this.request = { ...this.request, method: "POST" }
       }
       if ((e.key === "u" || e.key === "U") && e.altKey) {
-        this.method = "PUT"
+        this.request = { ...this.request, method: "PUT" }
       }
       if ((e.key === "x" || e.key === "X") && e.altKey) {
-        this.method = "DELETE"
+        this.request = { ...this.request, method: "DELETE" }
       }
       if (e.key == "ArrowUp" && e.altKey && this.currentMethodIndex > 0) {
-        this.method = this.methodMenuItems[--this.currentMethodIndex % this.methodMenuItems.length]
+        this.request = {
+          ...this.request,
+          method: this.methodMenuItems[--this.currentMethodIndex % this.methodMenuItems.length],
+        }
       } else if (e.key == "ArrowDown" && e.altKey && this.currentMethodIndex < 9) {
-        this.method = this.methodMenuItems[++this.currentMethodIndex % this.methodMenuItems.length]
+        this.request = {
+          ...this.request,
+          method: this.methodMenuItems[++this.currentMethodIndex % this.methodMenuItems.length],
+        }
       }
     }
     document.addEventListener("keydown", this._keyListener.bind(this))
@@ -2021,21 +1943,7 @@ export default {
   created() {
     if (Object.keys(this.$route.query).length) this.setRouteQueries(this.$route.query)
     this.$watch(
-      (vm) => [
-        vm.name,
-        vm.method,
-        vm.url,
-        vm.auth,
-        vm.path,
-        vm.httpUser,
-        vm.httpPassword,
-        vm.bearerToken,
-        vm.headers,
-        vm.params,
-        vm.bodyParams,
-        vm.contentType,
-        vm.rawParams,
-      ],
+      (vm) => [vm.request, vm.url, vm.path],
       (val) => {
         this.setRouteQueryState()
       }
