@@ -184,6 +184,13 @@
               </button>
               <button
                 class="icon button"
+                @click="showOpenAPIImportModal = !showOpenAPIImportModal"
+                v-tooltip.bottom="'import OpenAPI'"
+              >
+                <i class="material-icons">folder_special</i>
+              </button>
+              <button
+                class="icon button"
                 @click="showCodegenModal = !showCodegenModal"
                 :disabled="!isValidURL"
                 v-tooltip.bottom="$t('show_code')"
@@ -628,6 +635,10 @@
                 />
               </SmartTab>
 
+              <SmartTab :id="'openapi'" :label="'OpenAPI'">
+                <Openapi :page="'rest'" @useHistory="handleUseHistory" ref="historyComponent" />
+              </SmartTab>
+
               <SmartTab :id="'collections'" :label="$t('collections')">
                 <Collections />
               </SmartTab>
@@ -657,6 +668,12 @@
       :show="showCurlImportModal"
       @hide-modal="showCurlImportModal = false"
       @handle-import="handleImport"
+    />
+
+    <HttpImportOpenAPI
+      :show="showOpenAPIImportModal"
+      @hide-modal="showOpenAPIImportModal = false"
+      @handle-import="showOpenAPIImportModal = false"
     />
 
     <HttpCodegenModal
@@ -791,6 +808,7 @@ import { logHoppRequestRunToAnalytics } from "~/helpers/fb/analytics"
 export default {
   data() {
     return {
+      showOpenAPIImportModal: false,
       showCurlImportModal: false,
       showPreRequestScript: true,
       testsEnabled: true,
